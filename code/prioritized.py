@@ -23,6 +23,16 @@ class PrioritizedPlanningSolver(object):
         for goal in self.goals:
             self.heuristics.append(compute_heuristics(my_map, goal))
 
+    def get_path_sol(self, goal_node):
+        """Extracts the path from the given goal node back to the start node."""
+        path = []
+        curr = goal_node
+        while curr is not None:
+            path.append(curr['loc'])
+            curr = curr['parent']
+        path.reverse()
+        return path
+
     def find_solution(self):
         """ Finds paths for all agents from their start locations to their goal locations."""
 
@@ -30,12 +40,17 @@ class PrioritizedPlanningSolver(object):
         result = []
         constraints = []
 
+        # Add the specific constraint for agent 1
+        constraints.append({'agent': 1, 'loc': [(1, 2)], 'timestep': 2})
+        constraints.append({'agent': 1, 'loc': [(1, 4)], 'timestep': 2})
+
         for i in range(self.num_of_agents):  # Find path for each agent
             path = a_star(self.my_map, self.starts[i], self.goals[i], self.heuristics[i],
                           i, constraints)
             if path is None:
                 raise BaseException('No solutions')
             result.append(path)
+
 
             ##############################
             # Task 2: Add constraints here
@@ -45,6 +60,14 @@ class PrioritizedPlanningSolver(object):
             #            * constraints: array of constraints to consider for future A* searches
 
 
+            ##############################
+
+            # Add constraints for the following agents to avoid collisions
+            for t in range(len(path)):
+                for k in range(i + 1, self.num_of_agents):
+                    constraints.append({'agent': k, 'loc': [path[t]], 'timestep': t})
+                    if t < len(path) - 1:
+                        constraints.append({'agent': k, 'loc': [path[t], path[t + 1]], 'timestep': t + 1})
             ##############################
 
         self.CPU_time = timer.time() - start_time
