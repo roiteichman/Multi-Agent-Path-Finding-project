@@ -39,35 +39,37 @@ class PrioritizedPlanningSolver(object):
         start_time = timer.time()
         result = []
         constraints = []
+        max_timestep = len(self.my_map) * len(self.my_map[0])
+
 
         # Add the specific constraint for agent 1
         constraints.append({'agent': 1, 'loc': [(1, 2)], 'timestep': 2})
         constraints.append({'agent': 1, 'loc': [(1, 4)], 'timestep': 2})
 
-        for i in range(self.num_of_agents):  # Find path for each agent
+        # Find path for each agent
+        for i in range(self.num_of_agents):
             path = a_star(self.my_map, self.starts[i], self.goals[i], self.heuristics[i],
-                          i, constraints)
+                          i, constraints, time_limit=max_timestep)
             if path is None:
                 raise BaseException('No solutions')
             result.append(path)
 
-
-            ##############################
-            # Task 2: Add constraints here
-            #         Useful variables:
-            #            * path contains the solution path of the current (i'th) agent, e.g., [(1,1),(1,2),(1,3)]
-            #            * self.num_of_agents has the number of total agents
-            #            * constraints: array of constraints to consider for future A* searches
-
-
-            ##############################
-
-            # Add constraints for the following agents to avoid collisions
+            # Add constraints for the future agents to avoid collisions
+            # First loop: Iterate over the path of the current agent
             for t in range(len(path)):
+                # Second loop: Add constraints for all future agents
                 for k in range(i + 1, self.num_of_agents):
+                    # Add vertex constraint
                     constraints.append({'agent': k, 'loc': [path[t]], 'timestep': t})
+                    # Add edge constraint if not the last step in the path
                     if t < len(path) - 1:
                         constraints.append({'agent': k, 'loc': [path[t], path[t + 1]], 'timestep': t + 1})
+
+            # Add constraints for future agents to prevent moving on top of agents that have reached their goal
+            for k in range(i + 1, self.num_of_agents):
+                for t in range(len(path), max_timestep):
+                    constraints.append({'agent': k, 'loc': [path[-1]], 'timestep': t})
+
             ##############################
 
         self.CPU_time = timer.time() - start_time

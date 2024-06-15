@@ -124,17 +124,14 @@ def compare_nodes(n1, n2):
     return n1['g_val'] + n1['h_val'] < n2['g_val'] + n2['h_val']
 
 
-def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints):
+def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints, time_limit=None):
     """ my_map      - binary obstacle map
         start_loc   - start position
         goal_loc    - goal position
         agent       - the agent that is being re-planned
         constraints - constraints defining where robot should or cannot go at each timestep
+        time_limit - optional parameter to limit the search horizon
     """
-
-    ##############################
-    # Task 1.1: Extend the A* search to search in the space-time domain
-    #           rather than space domain, only.
 
     open_list = []
     closed_list = dict()
@@ -144,18 +141,40 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints):
     root = {'loc': start_loc, 'g_val': 0, 'h_val': h_value, 'parent': None, 'timestep': earliest_goal_timestep}
     push_node(open_list, root)
     closed_list[(root['loc'], root['timestep'])] = root
+
     while len(open_list) > 0:
         curr = pop_node(open_list)
-        #############################
-        # Task 1.4: Adjust the goal test condition to handle goal constraints
+
+        # adjust the goal test condition to handle goal constraints
         if curr['loc'] == goal_loc and not is_constrained_future(curr['loc'], goal_loc,
                                              curr['timestep']+1, constraint_table, my_map):
             return get_path(curr)
+
+        # limits the search horizon
+        if time_limit is not None and curr['timestep'] >= time_limit:
+            continue
+
         # Generate child nodes for moving to neighboring cells
         for dir in range(4):
             child_loc = move(curr['loc'], dir)
+
+            # Skip out-of-bounds locations
+            if (child_loc[0] < 0 or child_loc[0] >= len(my_map) or
+                    child_loc[1] < 0 or child_loc[1] >= len(my_map[0])):
+                continue
+
+            # Skip obstacles
             if my_map[child_loc[0]][child_loc[1]]:
                 continue
+
+            # ensure that the agent does not enter invalid locations due to constraints
+            if is_constrained(curr['loc'], child_loc, curr['timestep'] + 1, constraint_table):
+                continue
+
+            # Skip locations without heuristic values
+            if child_loc not in h_values:
+                continue
+
             child = {'loc': child_loc,
                     'g_val': curr['g_val'] + 1,
                     'h_val': h_values[child_loc],
