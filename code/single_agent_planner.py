@@ -51,7 +51,7 @@ def build_constraint_table(constraints, agent):
     ##############################
     # Task 1.2/1.3: Return a table that constains the list of constraints of
     #               the given agent for each time step. The table can be used
-    #               for a more efficient constraint violation check in the 
+    #               for a more efficient constraint violation check in the
     #               is_constrained function.
 
     constraint_table = {}
@@ -94,18 +94,16 @@ def is_constrained(curr_loc, next_loc, next_time, constraint_table):
         for constraint in constraint_table[next_time]:
             if constraint['loc'] == [next_loc] or (
                     len(constraint['loc']) == 2 and constraint['loc'] == [curr_loc, next_loc]):
-                print("constraint found in ", next_loc, " at ", next_time)
                 return True
     return False
 
-def is_constrained_future(curr_loc, next_loc, next_time, constraint_table, my_map):
+def is_constrained_in_future(curr_loc, next_loc, next_time, constraint_table, my_map):
 
     for curr_time in range(next_time, len(my_map[0])*len(my_map[1])):
         if curr_time in constraint_table:
             for constraint in constraint_table[curr_time]:
                 if constraint['loc'] == [next_loc] or (
                         len(constraint['loc']) == 2 and constraint['loc'] == [curr_loc, next_loc]):
-                    print("constraint found in ", next_loc, " at ", curr_time)
                     return True
     return False
 
@@ -124,7 +122,7 @@ def compare_nodes(n1, n2):
     return n1['g_val'] + n1['h_val'] < n2['g_val'] + n2['h_val']
 
 
-def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints, time_limit=None):
+def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints):
     """ my_map      - binary obstacle map
         start_loc   - start position
         goal_loc    - goal position
@@ -138,21 +136,22 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints, time_limit
     earliest_goal_timestep = 0
     constraint_table = build_constraint_table(constraints, agent)
     h_value = h_values[start_loc]
-    root = {'loc': start_loc, 'g_val': 0, 'h_val': h_value, 'parent': None, 'timestep': earliest_goal_timestep}
+    root = {'loc': start_loc, 'timestep': earliest_goal_timestep, 'g_val': 0, 'h_val': h_value, 'parent': None}
     push_node(open_list, root)
     closed_list[(root['loc'], root['timestep'])] = root
+    horizon = len(my_map[0])*len(my_map[1])
 
     while len(open_list) > 0:
         curr = pop_node(open_list)
 
+        # limits the search horizon
+        if curr['timestep'] >= horizon:
+            continue
+
         # adjust the goal test condition to handle goal constraints
-        if curr['loc'] == goal_loc and not is_constrained_future(curr['loc'], goal_loc,
+        if curr['loc'] == goal_loc and not is_constrained_in_future(curr['loc'], goal_loc,
                                              curr['timestep']+1, constraint_table, my_map):
             return get_path(curr)
-
-        # limits the search horizon
-        if time_limit is not None and curr['timestep'] >= time_limit:
-            continue
 
         # Generate child nodes for moving to neighboring cells
         for dir in range(4):
@@ -176,10 +175,11 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints, time_limit
                 continue
 
             child = {'loc': child_loc,
-                    'g_val': curr['g_val'] + 1,
-                    'h_val': h_values[child_loc],
-                    'parent': curr,
-                    'timestep': curr['timestep']+1}
+                     'timestep': curr['timestep'] + 1,
+                     'g_val': curr['g_val'] + 1,
+                     'h_val': h_values[child_loc],
+                     'parent': curr
+                     }
             if not is_constrained(curr['loc'], child['loc'], child['timestep'], constraint_table):
                 if (child['loc'], child['timestep']) in closed_list:
                     existing_node = closed_list[(child['loc'], child['timestep'])]
@@ -192,10 +192,11 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints, time_limit
 
         # Generate child node where the agent waits in the current cell
         wait_child = {'loc': curr['loc'],
+                      'timestep': curr['timestep'] + 1,
                       'g_val': curr['g_val'] + 1,
                       'h_val': curr['h_val'],
-                      'parent': curr,
-                      'timestep': curr['timestep'] + 1}
+                      'parent': curr
+                      }
         if not is_constrained(curr['loc'], wait_child['loc'], wait_child['timestep'], constraint_table):
             if (wait_child['loc'], wait_child['timestep']) in closed_list:
                 existing_node = closed_list[(wait_child['loc'], wait_child['timestep'])]

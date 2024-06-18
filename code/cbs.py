@@ -76,18 +76,7 @@ def disjoint_splitting(collision):
     #                          specified edge at the specified timestep
     #           Choose the agent randomly
 
-    if len(collision['loc']) == 1:  # Vertex collision
-        agent = random.choice([collision['a1'], collision['a2']])
-        return [
-            {'agent': agent, 'loc': collision['loc'], 'timestep': collision['timestep']},
-            {'agent': agent, 'loc': collision['loc'], 'timestep': collision['timestep'] + 1}
-        ]
-    elif len(collision['loc']) == 2:  # Edge collision
-        agent = random.choice([collision['a1'], collision['a2']])
-        return [
-            {'agent': agent, 'loc': collision['loc'], 'timestep': collision['timestep']},
-            {'agent': agent, 'loc': collision['loc'][::-1], 'timestep': collision['timestep'] + 1}
-        ]
+    pass
 
 
 class CBSSolver(object):
@@ -188,10 +177,7 @@ class CBSSolver(object):
             # Choose the first collision
             collision = node['collisions'][0]
 
-            # Generate constraints from the collision based on the flag disjoint
-            #if disjoint:
-            #    constraints = disjoint_splitting(collision)
-            #else:
+            # Generate constraints from the collision
             constraints = standard_splitting(collision)
 
             # Explore each constraint
