@@ -174,8 +174,8 @@ class CBSSolver(object):
                 self.print_results(node)
                 return node['paths']
 
-            # Choose the first collision
-            collision = node['collisions'][0]
+            # Choose the random collision instead of the first one - make the running more quickly - Oren approved to use it.
+            collision = random.choice(node['collisions'])
 
             # Generate constraints from the collision
             constraints = standard_splitting(collision)
